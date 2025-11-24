@@ -60,30 +60,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Function to get the current display based on the mode
     func getCurrentDisplay() -> String {
+        let compact = SettingsStore.shared.compactDisplay
+
         switch displayMode {
         case .week:
-            return getCurrentWeekNumber()
+            return getCurrentWeekNumber(compact: compact)
         case .day:
-            return getCurrentDayOfYear()
+            return getCurrentDayOfYear(compact: compact)
         case .both:
-            return "\(getCurrentDayOfYear()), \(getCurrentWeekNumber())"
+            let day = getCurrentDayOfYear(compact: compact)
+            let week = getCurrentWeekNumber(compact: compact)
+            return "\(day) \(week)"
         }
     }
 
     // Function to get the current week number
-    func getCurrentWeekNumber() -> String {
+    func getCurrentWeekNumber(compact: Bool = false) -> String {
         let calendar = Calendar.current
         let today = Date()
         let weekOfYear = calendar.component(.weekOfYear, from: today)
-        return "Week \(weekOfYear)"
+        return compact ? "W\(weekOfYear)" : "Week \(weekOfYear)"
     }
 
     // Function to get the current day of the year
-    func getCurrentDayOfYear() -> String {
+    func getCurrentDayOfYear(compact: Bool = false) -> String {
         let calendar = Calendar.current
         let today = Date()
         let dayOfYear = calendar.ordinality(of: .day, in: .year, for: today) ?? 0
-        return "Day \(dayOfYear)"
+        return compact ? "D\(dayOfYear)" : "Day \(dayOfYear)"
     }
 
     // Functions to change the display mode
@@ -142,3 +146,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             settingsWindow = nil  // Allow new window creation next time
         }
     }
+

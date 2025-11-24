@@ -10,6 +10,12 @@ import SwiftUI
 struct SettingsView: View {
     @State private var launchAtStartup = false
     @State private var shortcutKeys = "⌘ + 1"
+    @State private var refreshInterval = 60
+    @State private var weekStartsOnMonday = true
+ 
+    @ObservedObject var settings = SettingsStore.shared
+    
+    let refreshOptions = [30,60,300,600,3600]
 
     let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     let appBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
@@ -33,10 +39,21 @@ struct SettingsView: View {
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(5)
             }
+            
+            Picker("Refresh Interval", selection: $refreshInterval) {
+                ForEach(refreshOptions, id: \.self) { seconds in
+                    Text("\(seconds / 60 == 0 ? "\(seconds)s" : "\(seconds / 60)m")").tag(seconds)
+                }
+            }
+            
+            Toggle("Compact Display", isOn: $settings.compactDisplay)
+            
+            
 
             Spacer()
 
-            // App Version and Copyright Info
+            
+            // Footer - App Version and Copyright Info
             VStack {
                 Divider()
                 Text("Dately Version \(appVersion) (Build \(appBuild))")
@@ -51,7 +68,7 @@ struct SettingsView: View {
             .padding(.top, 10)
         }
         .padding(20)
-        .frame(width: 350, height: 220) // Adjusted height to fit the new info
+        .frame(width: 350, height: 320) // Adjusted height to fit the new info
     }
 }
 
