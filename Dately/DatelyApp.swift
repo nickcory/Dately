@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import Combine
+import ServiceManagement
 
 @main
 struct DatelyApp: App {
@@ -24,6 +26,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var settingsWindow: NSWindow?
     
+    var cancellables = Set<AnyCancellable>()
+    
     // Enum for display modes
     enum DisplayMode {
         case week
@@ -36,6 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the menu bar item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        updateStatusBarTitle()
 
         if let statusButton = statusItem?.button {
             // Set the initial title based on the default display mode (week)
@@ -43,18 +48,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             // Create the menu for selecting display modes and quitting
             let menu = NSMenu()
-            menu.addItem(NSMenuItem(title: "Show Day", action: #selector(showDay), keyEquivalent: "1"))
-            menu.addItem(NSMenuItem(title: "Show Week", action: #selector(showWeek), keyEquivalent: "2"))
-            menu.addItem(NSMenuItem(title: "Show Day and Week", action: #selector(showDayAndWeek), keyEquivalent: "3"))
+            menu.addItem(NSMenuItem(title: "Show Day", action: #selector(showDay), keyEquivalent: ""))
+            menu.addItem(NSMenuItem(title: "Show Week", action: #selector(showWeek), keyEquivalent: ""))
+            menu.addItem(NSMenuItem(title: "Show Day and Week", action: #selector(showDayAndWeek), keyEquivalent: ""))
             menu.addItem(NSMenuItem.separator())
-            menu.addItem(NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: ","))
-            menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q"))
+            menu.addItem(NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: ""))
+            menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: ""))
             statusItem?.menu = menu
-
-            // Timer to update the status bar every minute in case the day/week changes
-            Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
-                statusButton.title = self.getCurrentDisplay()
-            }
+            
+            SettingsStore.shared.$compactDisplay
+                .receive(on: RunLoop.main)
+                .sink { [weak self] _ in
+                    self?.updateStatusBarTitle()
+                }
+                .store(in: &cancellables)
+            
+            NotificationCenter.default.addObserver(self,selector: #selector(handleDayChange), name: .NSCalendarDayChanged, object: nil)
+            
+                
         }
     }
 
@@ -113,6 +124,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
+    @objc func handleDayChange(_ notification: Notification) {
+        updateStatusBarTitle()
+    }
+    
+    func applicationWillTerminate(_ notification: Notification) {
+        NotificationCenter.default.removeObserver(self, name: .NSCalendarDayChanged, object: nil)
+    }
+    
     @objc func openSettings() {
             if settingsWindow == nil {
                 let settingsView = SettingsView()
@@ -134,7 +153,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             settingsWindow?.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
         }
-
+    
+    
         @objc func quitApp() {
             NSApplication.shared.terminate(nil)
         }

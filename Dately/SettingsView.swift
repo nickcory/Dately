@@ -6,16 +6,11 @@
 //
 
 import SwiftUI
+import ServiceManagement
 
 struct SettingsView: View {
-    @State private var launchAtStartup = false
-    @State private var shortcutKeys = "⌘ + 1"
-    @State private var refreshInterval = 60
-    @State private var weekStartsOnMonday = true
- 
-    @ObservedObject var settings = SettingsStore.shared
     
-    let refreshOptions = [30,60,300,600,3600]
+    @ObservedObject var settings = SettingsStore.shared
 
     let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     let appBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
@@ -27,24 +22,9 @@ struct SettingsView: View {
                 .bold()
                 .padding(.bottom, 10)
 
-            Toggle("Launch at Startup", isOn: $launchAtStartup)
+            Toggle("Launch at Login", isOn: Binding(get: {settings.launchAtLogin}, set: {newValue in settings.setLaunchAtLogin(newValue)}))
                 .padding(.bottom, 10)
 
-            HStack {
-                Text("Shortcut Keys:")
-                Spacer()
-                Text(shortcutKeys)
-                    .font(.headline)
-                    .padding(5)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(5)
-            }
-            
-            Picker("Refresh Interval", selection: $refreshInterval) {
-                ForEach(refreshOptions, id: \.self) { seconds in
-                    Text("\(seconds / 60 == 0 ? "\(seconds)s" : "\(seconds / 60)m")").tag(seconds)
-                }
-            }
             
             Toggle("Compact Display", isOn: $settings.compactDisplay)
             
@@ -69,6 +49,10 @@ struct SettingsView: View {
         }
         .padding(20)
         .frame(width: 350, height: 320) // Adjusted height to fit the new info
+        .onAppear {
+            let appService = SMAppService.mainApp
+            settings.launchAtLogin = (appService.status == .enabled)
+        }
     }
 }
 

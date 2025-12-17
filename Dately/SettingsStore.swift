@@ -7,17 +7,44 @@
 
 import Foundation
 import Combine
+import ServiceManagement
 
-class SettingsStore: ObservableObject {
+final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
-    
-    private init () {
-        self.compactDisplay = UserDefaults.standard.bool(forKey: "compactDisplay")
-    }
-    
+
     @Published var compactDisplay: Bool {
         didSet {
             UserDefaults.standard.set(compactDisplay, forKey: "compactDisplay")
+        }
+    }
+    
+    @Published var launchAtLogin: Bool = false
+
+    private init() {
+        // Restore compact display preference
+        self.compactDisplay = UserDefaults.standard.bool(forKey: "compactDisplay")
+
+        // Always safe to use on macOS 15+
+        let appService = SMAppService.mainApp
+        self.launchAtLogin = (appService.status == .enabled)
+    }
+
+    func setCompactDisplay(_ enabled: Bool) {
+        compactDisplay = enabled
+    }
+
+    func setLaunchAtLogin(_ enabled: Bool) {
+        let appService = SMAppService.mainApp
+
+        do {
+            if enabled {
+                try appService.register()
+            } else {
+                try appService.unregister()
+            }
+            self.launchAtLogin = (appService.status == .enabled)
+        } catch {
+            print("Failed to \(enabled ? "enable" : "disable") launch at login: \(error)")
         }
     }
 }
